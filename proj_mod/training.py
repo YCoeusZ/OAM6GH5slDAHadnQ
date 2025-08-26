@@ -211,16 +211,18 @@ def show_result(splits, feat, tar, pipe):
     cmatrix_record=cmatrix_record/len(splits)
     print(cmatrix_record) #This is the "Average confusion matrix" 
     
-def evaluate_combo(list_f_sel_tuple, dict_param, pipe, splits, feat, tar):
+def evaluate_combo(list_f_sel_tuple, dict_param, pipe, splits, feat, tar, selector_name="DataSelector", toomuchinfo=False):
     """
     Evaluate one (feature_set, n_neighbors) across all CV folds.
     
     :param list_f_sel_tuple: A tuple indicating a combination. 
     :param dict_param: The dictionary of parameters used to adjust the pipeline. Expect the same formate as param_grid for GridSeaerchCV: {"{step_name}__{hyper-parameter_name}": value, ... }. 
-    :param pipe: The model pipeline used. Expect that the DataSelector step to be samed as "DataSelector". 
+    :param pipe: The model pipeline used. Expect that the DataSelector must be part of it. 
+    :param selector_name: Defaulted to "DataSelector". The name of the DataSelector layer in the pipeline pipe. 
     :param splits: A list of the pre generated splits. 
     :param feat: The feat df. 
     :param tar: The tar df. 
+    :param toomuchinfo: Defaulted to False. Set to True if you are bored and want to see literally all info printed. 
     :return: A dict with all the stats we want. 
     """
     list_f_sel = list(list_f_sel_tuple) 
@@ -236,12 +238,15 @@ def evaluate_combo(list_f_sel_tuple, dict_param, pipe, splits, feat, tar):
         
         pipe = clone(pipe)
         
+        #Add forced feature selection to dict_param and keep a record of old keys 
         ori_dict_param_keys=list(dict_param.keys())
         
-        dict_param["DataSelector__force"]=list_f_sel 
+        dict_param[f"{selector_name}__force"]=list_f_sel 
         
+        #Update pipeline with hyper-parameters chosen 
         pipe.set_params(**dict_param) 
-            
+        
+        #Fit and predict    
         pipe.fit(X=x_tr, y=y_tr)
         y_p = pipe.predict(X=x_te)
 
@@ -257,13 +262,14 @@ def evaluate_combo(list_f_sel_tuple, dict_param, pipe, splits, feat, tar):
     norm_above_73 = float(1-norm.cdf(0.73, loc=acc_mean, scale=acc_std))
     acc_mean_above_73 = float(1-norm.cdf(0.73, loc=acc_mean, scale=acc_std/np.sqrt(len(splits))))
 
+    #Create printable report. 
     msg = (
         "_"*20 + "\n"
         + f"Currently used features {str_features}.\n"
         )
     
     for key in ori_dict_param_keys: 
-        key_param_name=key.split("__")[-1]
+        key_param_name=key
         key_param_value=dict_param[key]
         msg=msg+ (
             f"With {key_param_name} at {key_param_value}. \n"
@@ -276,6 +282,10 @@ def evaluate_combo(list_f_sel_tuple, dict_param, pipe, splits, feat, tar):
             + "_"*20
         )
     
+    if toomuchinfo: 
+        print(msg) #Why? Who hurt you. 
+    
+    #Create returned data as a dict. 
     return_dict={
         #Hyper-parameters
         "features": str_features,
@@ -291,8 +301,9 @@ def evaluate_combo(list_f_sel_tuple, dict_param, pipe, splits, feat, tar):
         "log": msg,
     }
     
+    #Log more hyper-parameters in returned dict. 
     for key in ori_dict_param_keys: 
-        return_dict[key.split("__")[-1]]=dict_param[key]
+        return_dict[key]=dict_param[key]
 
     return return_dict
     
