@@ -1,11 +1,16 @@
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.pipeline import Pipeline
 import numpy as np 
 import pandas as pd
-from sklearn.feature_selection import f_classif 
+from sklearn.feature_selection import f_classif
 import itertools
 from sklearn.utils.validation import check_is_fitted
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.inspection import permutation_importance
+from sklearn.base import clone
+import matplotlib.pyplot as plt 
+from scipy.stats import norm
 
 # def acc_at_cutoff(y_true, y_porbs, cutoff):
 #     """
@@ -43,10 +48,13 @@ def LDA_LR_feat_imp(pipe: Pipeline, LDA_name: str = "LDA", LR_name: str = "LogRe
     return int(IMP.argsort()[0])
 
 class data_creator(BaseEstimator, TransformerMixin):
-    def __init__(self):
+    def __init__(self, counts=False):
+        """    
+        Creates manufactured data "mean", "F_w_mean", "above_3", "above_4", and "above_5". Can also create count of 1 to 5 as well if set counts to True. 
+        
+        :param counts: Defaulted to False. Set to true to count the number of 1 to 5s. 
         """
-        Creates manufactured data "mean", "F_w_mean", "above_3", "above_4", and "above_5". 
-        """
+        self.counts=counts
         pass 
     
     def fit(self, X: pd.DataFrame, y): 
@@ -67,6 +75,12 @@ class data_creator(BaseEstimator, TransformerMixin):
         X_copy["above_3"]=X_copy[X.columns].apply(lambda row_arr: (row_arr >= 3).mean(), axis=1)
         X_copy["above_4"]=X_copy[X.columns].apply(lambda row_arr: (row_arr >= 4).mean(), axis=1)
         X_copy["above_5"]=X_copy[X.columns].apply(lambda row_arr: (row_arr >= 5).mean(), axis=1)
+        if self.counts: 
+            X_copy["count_1"]=X_copy[X.columns].apply(lambda row_arr: (row_arr == 1).sum(), axis=1)
+            X_copy["count_2"]=X_copy[X.columns].apply(lambda row_arr: (row_arr == 2).sum(), axis=1)
+            X_copy["count_3"]=X_copy[X.columns].apply(lambda row_arr: (row_arr == 3).sum(), axis=1)
+            X_copy["count_4"]=X_copy[X.columns].apply(lambda row_arr: (row_arr == 4).sum(), axis=1)
+            X_copy["count_5"]=X_copy[X.columns].apply(lambda row_arr: (row_arr == 5).sum(), axis=1)
         return X_copy 
 
 class data_selector(BaseEstimator, TransformerMixin):
@@ -136,3 +150,149 @@ def all_combin(arr_in):
     for n_chosen in range(1, len(arr_in)+1): 
         all_combin.extend(list(itertools.combinations(arr_in, n_chosen)))
     return all_combin
+
+def show_result(splits, feat, tar, pipe): 
+    """
+    A function that shows the accuracy distribution, the imporance by permutation importance method, and finally the "average confusion matrix". 
+    
+    :param splits: The splits to perform the repeated experiment on. 
+    :param feat: The feature pd.DataFrame input. 
+    :param tar: The target pd.DataFrame input. 
+    :param pipe: The model pipe to be experimented on. 
+    """
+    list_fold_acc=[]
+    list_fold_f1=[]
+    imp_record=None
+    cmatrix_record=None
+    # n_split = 5
+    # n_repeats = 20
+    # RSKF = RepeatedStratifiedKFold(n_splits=n_split, random_state=420, n_repeats=n_repeats)
+    # splits = list(RSKF.split(X=feat, y=tar))
+    for train_index, test_index in splits: 
+        x_tr,x_te=feat.iloc[train_index], feat.iloc[test_index]
+        y_tr, y_te=tar.iloc[train_index], tar.iloc[test_index]
+            
+        y_tr=np.ravel(y_tr.values)
+        y_te=np.ravel((y_te.values))
+            
+        pipe = clone(pipe)
+        pipe.fit(X=x_tr,y=y_tr)
+        y_p=pipe.predict(X=x_te)
+        acc=accuracy_score(y_pred=y_p,y_true=y_te)
+        f1=f1_score(y_pred=y_p,y_true=y_te)
+        list_fold_acc.append(acc)
+        list_fold_f1.append(f1)
+        # with parallel_backend("threading", n_jobs=-1):
+        #     with threadpool_limits(limits=1):
+        imp=permutation_importance(pipe,X=x_te.copy(deep=True),y=y_te,scoring="accuracy",n_repeats=30,n_jobs=-1,random_state=420)
+        if imp_record is None: 
+            imp_record=imp.importances_mean
+        else: 
+            imp_record=imp_record+imp.importances_mean
+        cmatrix=confusion_matrix(y_pred=y_p,y_true=y_te)
+        cmatrix=cmatrix/np.sum(cmatrix)
+        if cmatrix_record is None: 
+            cmatrix_record=cmatrix
+        else: 
+            cmatrix_record=cmatrix_record+cmatrix
+        
+
+    plt.hist(list_fold_acc,bins=25)
+    plt.show()
+
+    imp_record=imp_record/len(splits)
+    imp_sort_index=imp_record.argsort()
+    plt.barh(feat.columns[imp_sort_index], imp_record[imp_sort_index])
+    plt.title("Feature importance by permutaion method")
+    plt.ylabel("Features")
+    plt.xlabel("Importance")
+    plt.show()
+
+    cmatrix_record=cmatrix_record/len(splits)
+    print(cmatrix_record) #This is the "Average confusion matrix" 
+    
+def evaluate_combo(list_f_sel_tuple, dict_param, pipe, splits, feat, tar):
+    """
+    Evaluate one (feature_set, n_neighbors) across all CV folds.
+    
+    :param list_f_sel_tuple: A tuple indicating a combination. 
+    :param dict_param: The dictionary of parameters used to adjust the pipeline. Expect the same formate as param_grid for GridSeaerchCV: {"{step_name}__{hyper-parameter_name}": value, ... }. 
+    :param pipe: The model pipeline used. Expect that the DataSelector step to be samed as "DataSelector". 
+    :param splits: A list of the pre generated splits. 
+    :param feat: The feat df. 
+    :param tar: The tar df. 
+    :return: A dict with all the stats we want. 
+    """
+    list_f_sel = list(list_f_sel_tuple) 
+    fold_acc = []
+    fold_f1 = []
+
+    for train_index, test_index in splits:
+        x_tr, x_te = feat.iloc[train_index], feat.iloc[test_index]
+        y_tr, y_te = tar.iloc[train_index], tar.iloc[test_index]
+
+        y_tr = np.ravel(y_tr.values)
+        y_te = np.ravel(y_te.values)
+        
+        pipe = clone(pipe)
+        
+        ori_dict_param_keys=list(dict_param.keys())
+        
+        dict_param["DataSelector__force"]=list_f_sel 
+        
+        pipe.set_params(**dict_param) 
+            
+        pipe.fit(X=x_tr, y=y_tr)
+        y_p = pipe.predict(X=x_te)
+
+        fold_acc.append(accuracy_score(y_true=y_te, y_pred=y_p))
+        fold_f1.append(f1_score(y_true=y_te, y_pred=y_p))
+
+    str_features = ",".join(list_f_sel)
+    acc_mean = float(np.mean(fold_acc))
+    acc_std  = float(np.std(fold_acc))
+    f1_mean  = float(np.mean(fold_f1))
+    f1_std   = float(np.std(fold_f1))
+    above_73 = float((np.array(fold_acc) >= 0.73).sum() / (len(splits)))
+    norm_above_73 = float(1-norm.cdf(0.73, loc=acc_mean, scale=acc_std))
+    acc_mean_above_73 = float(1-norm.cdf(0.73, loc=acc_mean, scale=acc_std/np.sqrt(len(splits))))
+
+    msg = (
+        "_"*20 + "\n"
+        + f"Currently used features {str_features}.\n"
+        )
+    
+    for key in ori_dict_param_keys: 
+        key_param_name=key.split("__")[-1]
+        key_param_value=dict_param[key]
+        msg=msg+ (
+            f"With {key_param_name} at {key_param_value}. \n"
+        )
+    
+    msg=msg+(   
+            f"This combo has f1 mean {f1_mean} and f1 std {f1_std}, \n"
+            + f"with acc mean {acc_mean} acc std {acc_std}, "
+            + f"and sureness of beating 73% {above_73}.\n"
+            + "_"*20
+        )
+    
+    return_dict={
+        #Hyper-parameters
+        "features": str_features,
+        #Performance
+        "acc_mean": acc_mean,
+        "acc_std": acc_std,
+        "f1_mean": f1_mean,
+        "f1_std": f1_std,
+        "above_73": above_73,
+        "norm_above_73": norm_above_73,
+        "acc_mean_above_73": acc_mean_above_73,
+        #Log
+        "log": msg,
+    }
+    
+    for key in ori_dict_param_keys: 
+        return_dict[key.split("__")[-1]]=dict_param[key]
+
+    return return_dict
+    
