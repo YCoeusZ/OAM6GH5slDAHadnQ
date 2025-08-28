@@ -18,7 +18,7 @@ Data summary: There are total 126 data points, 69 of which have Y=1 (happy custo
 
 Predict if a customer is happy or not based on the answers they give to questions asked. 
 
-KPI: The official KPI is Accuracy score. The indicated goal is "Reach 73% accuracy score or above". 
+KPI: The official KPI is the Accuracy Score. The indicated goal is "Reach 73% accuracy score or above". 
 
 ## Baseline (trivial) Model 
 
@@ -33,7 +33,7 @@ We will use the "assume everyone is happy" (trivial) model as the baseline model
 
 ### CV and Metric Summary 
 
-We will take advantage the pre-built repeated stratified kfold method of sklean package. We will universally use 5 splits and 20 repeats, that is 100 "tasks" in total for each model (with certain hyper-parameters) (so that the CV concludes before I concluded being alive). 
+We will take advantage the pre-built repeated stratified kfold method of sklean package. We will universally use 5 splits and 20 repeats, that is 100 trials in total for each model (with certain hyper-parameters) (so that the CV concludes before I concluded being alive). 
 
 This brings us to the metric(s) we will use to judge our model, we will describe them in both technical and intuitive context (The intuitive description might not be fully rigorous): 
 
@@ -71,11 +71,12 @@ I have applied *Log Regression (LogReg)*, *(Gaussian, Multinomial, Complement, a
 ### A standard model pipeline 
 
 I will be using the Built-in Pipeline function of sklearn. 
-There are two custom layers that perform data extraction and transforming (see source code in "./proj_mod/training.py"): 
+There are two custom layers that perform data transforming (see source code in "./proj_mod/training.py"): 
 
 * Data Creator: Manufactures new features with the raw features provided. 
-* Data Selector: Selects features either automatically by applying pre-set conditions, or simply select with a pre-set list: When done automatically, the layer ranks the features by F test, and select according to pre-set conditions on F scores and p values. 
+* Data Selector: Selects features either automatically by applying pre-set conditions, or simply select with a pre-set list: When done automatically, the layer ranks the features by F test (by sklearn f_classif), and select according to pre-set conditions on F scores and p values. 
 
+After above data transformation, we load it to the main model layers. 
 A standard model pipeline has the following form: 
 
 Data Creator --> Data Selector --> Main model
@@ -84,8 +85,40 @@ Where the "Main model" is in form of, for instance, "StandardScaler() --> Logist
 
 ### (Selected) Model Performances 
 
+In the following, I detail some selected models with interesting performances: 
+
 ---
 #### KNN 
+
+**Remark**: This is, currently, the best model. 
+
+* Raw features used: X1, X3, X4, X6 
+* Hyper-parameter table: 
+
+| Used (Manufactured) Features | KNN Number of Neighbors | 
+|------------------------------|-------------------------| 
+| X1, X6, F_w_mwan             | 5                       |
+
+Where "F_w_mean", stands for "F score weighted mean", created with following method by the Data Creator layer: 
+Let $\vec{x}$ be the vector of raw features, for instance, $\vec{x}=(X1,X3,X4,X6)^{\top}$ in current context; let $l$ be the length of $\vec{x}$, which is $4$ in current context. Let $\vec{F}$ be the vector of F score of the raw features obtained by applying F test on the raw features, for instance, $\vec{F}=(F_{1},F_{3},F_{4},F_{6})$ in current context. Then: 
+
+```math
+\text{F score weighted mean}:=\frac{\vec{F}\; \vec{x}}{l}
+``` 
+
+* Performance table: 
+
+| acc_mean | f1_mean | above_73 | norm_above_73 | acc_mean_above_73 | 
+|----------|---------|----------|---------------|-------------------| 
+| 0.7376   | 0.7641  | 0.52     | 0.5342        | 0.8048            | 
+
+* Accuracy score distribution histogram: 
+
+![alt text](README_assets/image.png)
+
+* Raw feature importance ranks: 
+
+![alt text](README_assets/image-1.png)
 
 ---
 #### SVC 
@@ -95,3 +128,5 @@ Where the "Main model" is in form of, for instance, "StandardScaler() --> Logist
 
 ---
 #### NB-Cats
+
+---
