@@ -176,7 +176,7 @@ Data Creator --> Data Selector --> DT
 
 | Used (Manufactured) Features | Max Depth of DT |  
 |------------------------------|-----------------|  
-| X1, X6, mean                 | rbf             |  
+| X1, X6, mean                 | 6               |  
 
 * Performance table: 
 
