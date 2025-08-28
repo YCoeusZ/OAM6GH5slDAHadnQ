@@ -78,13 +78,9 @@ There are two custom layers that perform data extraction and transforming (see s
 
 A standard model pipeline has the following form: 
 
-```mermaid
-graph TD;
-    Data Creator --> Data Selector;
-    Data Selector --> Main models; 
-```
+Data Creator --> Data Selector --> Main model
 
-Where the "Main models" are in form of, for instance, "StandardScaler() --> LogisticRegression()"
+Where the "Main model" is in form of, for instance, "StandardScaler() --> LogisticRegression()"
 
 ### (Selected) Model Performances 
 
