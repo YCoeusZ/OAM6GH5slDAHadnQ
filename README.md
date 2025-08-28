@@ -24,6 +24,21 @@ KPI: The official KPI is the Accuracy Score. The indicated goal is "Reach 73% ac
 
 We will use the "assume everyone is happy" (trivial) model as the baseline model. Which, by construction, has an accuracy score of 0.5476. 
 
+## Result Summary
+
+* Preferred model: KNN with 5 neighbors using raw features X1, X3, X4, and X6; force Data Selector to only use X1, X6, and F score weighted mean. This model produced average accuracy of 73.76%, improving the trivial baseline model by 34.70%. 
+
+* Raw feature selection insight: It appears that the models actively perform better by removing raw feature X2 ("contents of my order was as I expected"). The 2/3 of the best performing models only utilized raw features X1, X3, X4, and X6, so I only suggest those features are the most important for our set goal of customer sentiment prediction in current context. 
+
+## Python Packages  
+
+* pandas (for data manipulation) 
+* sklearn (for model and pipeline construction) 
+* scipy (for evaluation and hypothesis testing) 
+* joblib (for parallel computing) 
+* gdown (for data retrieval) 
+* matplotlib (for visualization) 
+
 ## Challenges 
 
 * The low amount of data prevents of from using more complicated models that are better at understanding while take longer to learn. Thus, we will focus on "simpler" models. 
@@ -176,9 +191,3 @@ Data Creator --> Data Selector --> DT
 * Raw feature importance ranks: 
 
 ![alt text](README_assets/DT_FI.png)
-
-## Summary
-
-* Preferred model: KNN with 5 neighbors using raw features X1, X3, X4, and X6; force Data Selector to only use X1, X6, and F score weighted mean. This model produced average accuracy of 73.76%, improving the trivial baseline model by 34.70%. 
-
-* Raw feature selection insight: It appears that the models actively perform better by removing raw feature X2 ("contents of my order was as I expected"). The 2/3 of the best performing models only utilized raw features X1, X3, X4, and X6, so I only suggest those features are the most important for our set goal of customer sentiment prediction in current context. 
