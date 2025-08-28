@@ -42,7 +42,7 @@ This brings us to the metric(s) we will use to judge our model, we will describe
 | acc_mean $\in [0,1]$ | The mean of accuracy score of the 100 train and tests | The average accuracy of this model |
 | f1_mean $\in [0,1]$ | The mean of f1 score of the 100 train and tests | The average f1 score of this model| 
 | above_73 $\in [0,1]$ | The number of train and tests among the 100 that has accuracy score above 73% | The confidence level that the model has accuracy at least 73% | 
-| norm_above_73 $\in [0,1]$ | Assuming that the distribution of accuracy score is a normal distribution with the same mean and std at the 100 samples, the confidence level that the model has accuracy at least 73% | Same as Technical, sorry. | 
+| norm_above_73 $\in [0,1]$ | Assuming that the distribution of accuracy score is a normal distribution with the same mean and std at the 100 samples, the confidence level that the model has accuracy at least 73% | The confidence level that the model has accuracy at least 73% under the assumption that the accuracy score is normally distributed | 
 | acc_mean_above_73 $\in [0,1]$ | Applying CLT (Central Limit Theorem) on the 100 samples, the confidence level that the mean of the distribution of the accuracy score of the model is at least 73% | The confidence level that the average accuracy score, when applying the model repeatedly, is at least 73% | 
 
 **Remark**: Due to the symmetry (about its mean) of the normal distribution: The "acc_mean_above_73" will be the p-value of the Z-test (under the assumption that the sample std is the real std) for: 
@@ -66,7 +66,7 @@ Due to this reason, "acc_mean_above_73" is my "favorite" metric, as it packs the
 ## Model Pipelines 
 
 ### Summary 
-I have applied *Log Regression (LogReg)*, *(Gaussian, Multinomial, Complement, and Categorical)-Naive Bayesian (NB)*, *Decision Tree (DT)*, *Support Vector Classifier (SVC)*, and *K Nearest Neighborhood (KNN)* models (as **the main step** of a pipeline). Among which, KNN, Categorical-NB (NB-Cats), SVC, and DT performed acceptable results, which we will detail in later. 
+I have applied *Log Regression (LogReg)*, *(Gaussian, Multinomial, Complement, and Categorical)-Naive Bayesian (NB)*, *Decision Tree (DT)*, *Support Vector Classifier (SVC)*, and *K Nearest Neighborhood (KNN)* models (as **the main step** of a pipeline). Among which, KNN, Categorical-NB (NB-Cats), and SVC performed favorable results, which I will detail later. 
 
 ### A standard model pipeline 
 
@@ -77,11 +77,6 @@ There are two custom layers that perform data transforming (see source code in "
 * Data Selector: Selects features either automatically by applying pre-set conditions, or simply select with a pre-set list: When done automatically, the layer ranks the features by F test (by sklearn f_classif), and select according to pre-set conditions on F scores and p values. 
 
 After above data transformation, we load it to the main model layers. 
-A standard model pipeline has the following form: 
-
-Data Creator --> Data Selector --> Main model
-
-Where the "Main model" is in form of, for instance, "StandardScaler() --> LogisticRegression()"
 
 ### (Selected) Model Performances 
 
@@ -92,15 +87,19 @@ In the following, I detail some selected models with interesting performances:
 
 **Remark**: This is, currently, the best model. 
 
+* Pipeline: 
+
+Data Creator --> Data Selector --> StandardScaler --> KNN 
+
 * Raw features used: X1, X3, X4, X6 
 * Hyper-parameter table: 
 
 | Used (Manufactured) Features | KNN Number of Neighbors | 
 |------------------------------|-------------------------| 
-| X1, X6, F_w_mwan             | 5                       |
+| X1, X6, F_w_mean             | 5                       |
 
 Where "F_w_mean", stands for "F score weighted mean", created with following method by the Data Creator layer: 
-Let $\vec{x}$ be the vector of raw features, for instance, $\vec{x}=(X1,X3,X4,X6)^{\top}$ in current context; let $l$ be the length of $\vec{x}$, which is $4$ in current context. Let $\vec{F}$ be the vector of F score of the raw features obtained by applying F test on the raw features, for instance, $\vec{F}=(F_{1},F_{3},F_{4},F_{6})$ in current context. Then: 
+Let $\vec{x}$ be the vector of raw features, for instance, $\;\vec{x}=(X1,X3,X4,X6)^{\top}\;$ in current context; let $l$ be the length of $\vec{x}$, which is $4$ in current context. Let $\vec{F}$ be the vector of F score of the raw features obtained by applying F test on the raw features, for instance, $\;\vec{F}=(F_{1},F_{3},F_{4},F_{6})\;$ in current context. Then: 
 
 ```math
 \text{F score weighted mean}:=\frac{\vec{F}\; \vec{x}}{l}
@@ -114,19 +113,72 @@ Let $\vec{x}$ be the vector of raw features, for instance, $\vec{x}=(X1,X3,X4,X6
 
 * Accuracy score distribution histogram: 
 
-![alt text](README_assets/image.png)
+![alt text](README_assets/KNN_AC.png)
 
 * Raw feature importance ranks: 
 
-![alt text](README_assets/image-1.png)
+![alt text](README_assets/KNN_FI.png)
 
 ---
 #### SVC 
 
+* Pipeline: 
+
+Data Creator --> Data Selector --> StandardScaler --> SVC 
+
+* Raw features used: X1 X3 X4 X5 X6 
+* Hyper-parameter table: 
+
+| Used (Manufactured) Features | Kernel of SVC | Margin of SVC |
+|------------------------------|---------------|---------------|  
+| X1, X6, mean                 | rbf           | 100           | 
+
+Where "mean" is the mean of the raw features. 
+
+* Performance table: 
+
+| acc_mean | f1_mean | above_73 | norm_above_73 | acc_mean_above_73 | 
+|----------|---------|----------|---------------|-------------------| 
+| 0.7227   | 0.7663  | 0.50     | 0.4650        | 0.1896            | 
+
+* Accuracy score distribution histogram: 
+
+![alt text](README_assets/SVC_AC.png)
+
+* Raw feature importance ranks: 
+
+![alt text](README_assets/SVC_FI.png)
+
 ---
 #### DT 
 
----
-#### NB-Cats
+* Pipeline: 
 
----
+Data Creator --> Data Selector --> DT 
+
+* Raw features used: X1 X3 X4 X6 
+* Hyper-parameter table: 
+
+| Used (Manufactured) Features | Max Depth of DT |  
+|------------------------------|-----------------|  
+| X1, X6, mean                 | rbf             |  
+
+* Performance table: 
+
+| acc_mean | f1_mean | above_73 | norm_above_73 | acc_mean_above_73 | 
+|----------|---------|----------|---------------|-------------------| 
+| 0.7198   | 0.7402  | 0.43     | 0.4521        | 0.1144            | 
+
+* Accuracy score distribution histogram: 
+
+![alt text](README_assets/DT_AC.png)
+
+* Raw feature importance ranks: 
+
+![alt text](README_assets/DT_FI.png)
+
+## Summary
+
+* Preferred model: KNN with 5 neighbors using raw features X1, X3, X4, and X6; force Data Selector to only use X1, X6, and F score weighted mean. This model produced average accuracy of 73.76%, improving the trivial baseline model by 34.70%. 
+
+* Raw feature selection insight: It appears that the models actively perform better by removing raw feature X2 ("contents of my order was as I expected"). The 2/3 of the best performing models only utilized raw features X1, X3, X4, and X6, so I only suggest those features are the most important for our set goal of customer sentiment prediction in current context. 
