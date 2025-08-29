@@ -54,11 +54,11 @@ This brings us to the metric(s) we will use to judge our model, we will describe
 
 | Name | Technical | Intuition | 
 |----------|-----------------------|------------------|
-| acc_mean $\in [0,1]$ | The mean of accuracy score of the 100 train and tests | The average accuracy of this model |
-| f1_mean $\in [0,1]$ | The mean of f1 score of the 100 train and tests | The average f1 score of this model| 
-| above_73 $\in [0,1]$ | The number of train and tests among the 100 that has accuracy score above 73% | The confidence level that the model has accuracy at least 73% | 
-| norm_above_73 $\in [0,1]$ | Assuming that the distribution of accuracy score is a normal distribution with the same mean and std at the 100 samples, the confidence level that the model has accuracy at least 73% | The confidence level that the model has accuracy at least 73% under the assumption that the accuracy score is normally distributed | 
-| acc_mean_above_73 $\in [0,1]$ | Applying CLT (Central Limit Theorem) on the 100 samples, the confidence level that the mean of the distribution of the accuracy score of the model is at least 73% | The confidence level that the average accuracy score, when applying the model repeatedly, is at least 73% | 
+| acc_mean $\in [0,1]$ | The mean of accuracy score of the 100 trials | The average accuracy of this model |
+| f1_mean $\in [0,1]$ | The mean of f1 score of the 100 trials | The average f1 score of this model| 
+| above_73 $\in [0,1]$ | The number of trials among the 100 that has accuracy score above 73% | The confidence level that the model has accuracy at least 73% | 
+| norm_above_73 $\in [0,1]$ | Assuming that the distribution of accuracy score is a normal distribution with the same mean and std at the 100 trials, the confidence level that the model has accuracy at least 73% | The confidence level that the model has accuracy at least 73% under the assumption that the accuracy score is normally distributed | 
+| acc_mean_above_73 $\in [0,1]$ | Applying CLT (Central Limit Theorem) on the 100 trials, the confidence level that the mean of the distribution of the accuracy score of the model is at least 73% | The confidence level that the average accuracy score, when applying the model repeatedly, is at least 73% | 
 
 **Remark**: Due to the symmetry (about its mean) of the normal distribution: The "acc_mean_above_73" will be the p-value of the Z-test (under the assumption that the sample std is the real std) for: 
 
@@ -76,7 +76,7 @@ Due to this reason, "acc_mean_above_73" is my "favorite" metric, as it packs the
 
 * I would like to record all the performances and associated hyper-parameters, so I built a custom-made function evalutate_combo (with similar function to GridSearchCV) to be applied within the CV loops, the source code of this is in "./proj_mod/training.py". 
 
-* To visualize the performance of a selected model (with certain hyper-parameters), I built a custom-made function show_result, which plot the histogram of the distribution of the accuracy scores of the 100 trails, and the importance of each raw features (with permutation_importance) for the model of topic. The source code is also in "./proj_mod/training.py". 
+* To visualize the performance of a selected model (with certain hyper-parameters), I built a custom-made function show_result, which plot the histogram of the distribution of the accuracy scores of the 100 trials, and the importance of each raw features (with permutation_importance) for the model of topic. The source code is also in "./proj_mod/training.py". 
 
 ## Model Pipelines 
 
