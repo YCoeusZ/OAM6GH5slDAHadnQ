@@ -114,7 +114,7 @@ Data Creator --> Data Selector --> StandardScaler --> KNN
 | X1, X6, F_w_mean             | 5                       |
 
 Where "F_w_mean", stands for "F score weighted mean", created with following method by the Data Creator layer: 
-Let $\vec{x}$ be the vector of raw features, for instance, $`\vec{x}=(X1,X3,X4,X6)^{\top}`$ in current context; let $l$ be the length of $\vec{x}$, which is $4$ in current context. Let $\vec{F}$ be the vector of F score of the raw features obtained by applying F test on the raw features, for instance, $`\vec{F}=(F_{1},F_{3},F_{4},F_{6})`$ in current context. Then: 
+Let $\vec{x}$ be the vector of raw features, for instance, $` \vec{x}:=(X1,X3,X4,X6)^{\top} `$ in current context; let $l$ be the length of $\vec{x}$, which is $4$ in current context. Let $\vec{F}$ be the vector of F score of the raw features obtained by applying F test on the raw features, for instance, $` \vec{F}:=(F_{1},F_{3},F_{4},F_{6}) `$ in current context. Then: 
 
 ```math
 \text{F score weighted mean}:=\frac{\vec{F}\; \vec{x}}{l}
