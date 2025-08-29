@@ -32,7 +32,7 @@ We will use the "assume everyone is happy" (trivial) model as the baseline model
 
 ## Python Packages  
 
-* pandas (for data manipulation) 
+* numpy, pandas (for data manipulation and calculation) 
 * sklearn (for model and pipeline construction) 
 * scipy (for evaluation and hypothesis testing) 
 * joblib (for parallel computing) 
