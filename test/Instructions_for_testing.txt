@@ -1,0 +1,3 @@
+An instruction on how to perform tests with the test set data on premade models: 
+    1, Provide the string path, relative to the test.ipynb, to the train and test data. 
+    2, Run the notebook. 
