@@ -26,9 +26,9 @@ We will use the "assume everyone is happy" (trivial) model as the baseline model
 
 ## Result Summary
 
-* Preferred model: KNN with 5 neighbors using raw features X1, X3, X4, and X6; force Data Selector to only use X1, X6, and F score weighted mean. This model produced average accuracy of 73.76%, improving the trivial baseline model by 34.70%. 
+* Preferred model: KNN with 5 neighbors using raw features X1, X3, X4, and X6; force Data Selector to only use X1, X6, and F score weighted mean. This model produced average accuracy of 73.76%, improving upon the trivial baseline model by 34.70%. 
 
-* Raw feature selection insight: It appears that the models actively perform better by removing raw feature X2 ("contents of my order was as I expected"). The 2/3 of the best performing models only utilized raw features X1, X3, X4, and X6, so I only suggest those features are the most important for our set goal of customer sentiment prediction in current context. 
+* Raw feature selection insight: It appears that the models actively perform better by removing raw feature X2 ("contents of my order was as I expected"). The 2/3 of the best performing models only utilized raw features X1, X3, X4, and X6, so I suggest only those features are the most important for our set goal of customer sentiment prediction in current context, in particular, utilizing X2 appears to be counter-productive in general. 
 
 ## Python Packages  
 
