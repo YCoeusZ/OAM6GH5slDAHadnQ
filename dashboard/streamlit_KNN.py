@@ -253,18 +253,19 @@ st.pyplot(fig)
 st.markdown("""
             ## Predicting Sentiment according to "improvement budget" allotted 
             
-            * "improvement budget" indicates the total amount of improvement to be spent on the set of raw features. For instance: If one were to set it to 2, then we may spend it on improving each of X1, X6 once, or improve X1 twice, and so on. This value is expected to be an integer larger or equal to 1. 
+            * "improvement budget" indicates the total amount of improvement to be spent on the set of raw features. For instance: If one were to set it to 2, then we may spend it on improving each of X1, X6 once, or improve X1 twice (or only once), and so on. This value is expected to be an integer larger or equal to 1. 
             """)
 
 def comp_k(sum:int, k: int=len(features)): 
-    for cuts in itertools.combinations(range(sum+k-1), k-1): 
-        prev=-1 #First "cut"
-        parts=[]
-        #Each part should be current cut - previous cut -1 
-        for cut in cuts + (sum+k-1,): #Last "cut" is always the very last entry 
-            parts.append(cut-prev-1)
-            prev=cut 
-        yield np.array(parts)
+    for tot in range(1,sum+1):
+        for cuts in itertools.combinations(range(tot+k-1), k-1): 
+            prev=-1 #First "cut"
+            parts=[]
+            #Each part should be current cut - previous cut -1 
+            for cut in cuts + (tot+k-1,): #Last "cut" is always the very last entry 
+                parts.append(cut-prev-1)
+                prev=cut 
+            yield np.array(parts)
         
 # col_bgt, col_by = st.columns(2)
 
