@@ -83,6 +83,15 @@ with st.expander(label="Detail Description and Settings"):
             step=1
         )
 
+st.markdown("""
+            ## Raw feature context
+             
+            * X1 := my order was delivered on time
+            * X3 := I ordered everything I wanted to order
+            * X4 := I paid a good price for my order
+            * X6 := the app makes ordering easy for me
+            """)
+
 #Preparation 
 # str_data="../data/raw.csv"
 df=pd.read_csv(str_data)
