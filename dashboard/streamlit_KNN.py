@@ -22,7 +22,7 @@ sys.path.append("../")
 from proj_mod import training
 importlib.reload(training);
 
-st.set_page_config(page_title="What-if Prediction of Customer Sentiment Improvement", layout="centered")
+st.set_page_config(page_title="What-if Prediction of Customer Sentiment Improvement", layout="wide")
 st.title("What-if Prediction of Customer Sentiment Improvement")
 
 st.markdown("""
@@ -99,6 +99,7 @@ tar=df[target]
 # n_split = 5
 # n_repeats = 20
 RSKF = RepeatedStratifiedKFold(n_splits=n_split, random_state=seed, n_repeats=n_repeats)
+splits=list(RSKF.split(X=feat, y=tar))
 
 #Set hyper-parameters 
 force=["X1","X6","F_w_mean"] 
@@ -113,27 +114,30 @@ pipe=Pipeline([
 )
 
 #Train 
-enu_split=enumerate(list(RSKF.split(X=feat, y=tar)))
-def train_once(index:int, train_index, pipe: Pipeline): 
-    x_tr=feat.iloc[train_index]
-    y_tr=tar.iloc[train_index]
-    y_tr=np.ravel(y_tr.values)
-    
-    fitted=clone(pipe)
-    fitted.fit(X=x_tr,y=y_tr)
-    
-    return index, fitted 
-    
-models=Parallel(n_jobs=-1,backend="loky",verbose=10)(
-    delayed(train_once)(
-        index=index, 
-        train_index=train_index,
-        pipe=pipe
+@st.cache_resource
+def make_model_dict(splits): 
+    enu_split=enumerate(splits)
+    def train_once(index:int, train_index, pipe: Pipeline): 
+        x_tr=feat.iloc[train_index]
+        y_tr=tar.iloc[train_index]
+        y_tr=np.ravel(y_tr.values)
+        
+        fitted=clone(pipe)
+        fitted.fit(X=x_tr,y=y_tr)
+        
+        return index, fitted 
+        
+    models=Parallel(n_jobs=-1,backend="loky",verbose=10)(
+        delayed(train_once)(
+            index=index, 
+            train_index=train_index,
+            pipe=pipe
+        )
+        for index, (train_index, _) in enu_split
     )
-    for index, (train_index, _) in enu_split
-)
+    return dict(models)
 
-model_dict=dict(models)
+model_dict=make_model_dict(splits=splits)
 
 #Take input 
 st.markdown(
@@ -191,8 +195,7 @@ dict_deltas={
     "X6": x6_delta
 }
 
-#Predict 
-enu_split=enumerate(list(RSKF.split(X=feat, y=tar)))
+#Predict and graph 
 def eva_once(index: int, test_index, in_dict_deltas: dict): 
     #Take in test features and create altered data
     x_te_o=feat.iloc[test_index].copy(deep=True)    
@@ -202,52 +205,60 @@ def eva_once(index: int, test_index, in_dict_deltas: dict):
     arr_i=arr_o+arr_delt
     arr_i=arr_i.clip(min=np.full(shape=4,fill_value=0),max=np.full(shape=4,fill_value=5))
     x_te_i=pd.DataFrame(dict(zip(x_te_i.columns, arr_i.transpose())))
-    
+        
     #Load in the right model 
     cur_pipe=model_dict[index]
-    
+        
     #Make predictions and produce expected improvement pct 
     pos_o=cur_pipe.predict(X=x_te_o).mean() 
     pos_i=cur_pipe.predict(X=x_te_i).mean()
-    
+        
     #Load in target values
     y_te_o=tar.iloc[test_index]
     y_te_o=np.ravel(y_te_o.values)
     pos_acc=y_te_o.mean()
-    
+        
     return (pos_i-pos_o)/pos_o, (pos_i-pos_acc)/pos_acc
 
-results = Parallel(n_jobs=-1, backend="loky", verbose=10)(
-    delayed(eva_once)(
-        index=index, 
-        test_index=test_index,
-        in_dict_deltas=dict_deltas
+@st.cache_resource
+def make_predict(splits, dict_deltas):
+    enu_split=enumerate(splits)
+    results = Parallel(n_jobs=-1, backend="loky", verbose=10)(
+        delayed(eva_once)(
+            index=index, 
+            test_index=test_index,
+            in_dict_deltas=dict_deltas
+        )
+        for index, (_, test_index) in enu_split 
     )
-    for index, (_, test_index) in enu_split 
-)
+    return np.array(results)
 
-imp_pct=np.array(results)
+imp_pct=make_predict(splits=splits, dict_deltas=dict_deltas)
 
-#Record 
-df_whatif=pd.DataFrame(dict(zip(["rel pred", "rel truth"],imp_pct.transpose())))
+@st.cache_resource
+def make_graph(imp_pct): 
+    #Record 
+    df_whatif=pd.DataFrame(dict(zip(["rel pred", "rel truth"],imp_pct.transpose())))
 
-#Graph
-fig, axs = plt.subplots(1,2, figsize=(16,6))
-#Relative to predicted happiness rate 
-rp_mean=df_whatif["rel pred"].to_numpy().mean()
-rp_std=df_whatif["rel pred"].to_numpy().std()
-axs[0].hist(df_whatif["rel pred"])
-axs[0].set_xlabel("Predicted improvement rate"+f"\n mean: {rp_mean:,.4f}; std: {rp_std:,.4f}", fontsize=12)
-axs[0].set_title("Improvement relative to predicted happiness rate")
+    #Graph
+    fig, axs = plt.subplots(1,2, figsize=(16,6))
+    #Relative to predicted happiness rate 
+    rp_mean=df_whatif["rel pred"].to_numpy().mean()
+    rp_std=df_whatif["rel pred"].to_numpy().std()
+    axs[0].hist(df_whatif["rel pred"])
+    axs[0].set_xlabel("Predicted improvement rate"+f"\n mean: {rp_mean:,.4f}; std: {rp_std:,.4f}", fontsize=12)
+    axs[0].set_title("Improvement relative to predicted happiness rate")
 
-#Relative to recored happiness rate
-th_mean=df_whatif["rel truth"].to_numpy().mean()
-th_std=df_whatif["rel truth"].to_numpy().std()
-axs[1].hist(df_whatif["rel truth"])
-axs[1].set_xlabel("Predicted improvement rate"+f"\n mean: {th_mean:,.4f}; std: {th_std:,.4f}", fontsize=12)
-axs[1].set_title("Improvement relative to recorded happiness rate")
+    #Relative to recored happiness rate
+    th_mean=df_whatif["rel truth"].to_numpy().mean()
+    th_std=df_whatif["rel truth"].to_numpy().std()
+    axs[1].hist(df_whatif["rel truth"])
+    axs[1].set_xlabel("Predicted improvement rate"+f"\n mean: {th_mean:,.4f}; std: {th_std:,.4f}", fontsize=12)
+    axs[1].set_title("Improvement relative to recorded happiness rate")
+    
+    return fig
 
-st.pyplot(fig)
+st.pyplot(make_graph(imp_pct=imp_pct))
 
 #Suggest Business Plan
 st.markdown("""
@@ -277,27 +288,31 @@ imp_bgt=st.number_input(
         step=1
 )
 
-df_bgt_results=pd.DataFrame(dict(zip(features, [[] for _ in features ])))
-df_bgt_results["mean_rel_pred"], df_bgt_results["std_rel_pred"], df_bgt_results["mean_rel_act"], df_bgt_results["std_rel_act"]=[],[],[],[]
+@st.cache_resource
+def make_bgt_results(bgt, splits):
+    df_bgt_results=pd.DataFrame(dict(zip(features, [[] for _ in features ])))
+    df_bgt_results["mean_rel_pred"], df_bgt_results["std_rel_pred"], df_bgt_results["mean_rel_act"], df_bgt_results["std_rel_act"]=[],[],[],[]
 
-for lnr_comb in comp_k(sum=imp_bgt): 
-    cur_dict_delta=dict(zip(features, lnr_comb))
-    enu_split=enumerate(list(RSKF.split(X=feat, y=tar)))
-    # print(cur_dict_delta)
-    results = Parallel(n_jobs=-1, backend="loky", verbose=10)(
-        delayed(eva_once)(
-            index=index, 
-            test_index=test_index,
-            in_dict_deltas=cur_dict_delta
+    for lnr_comb in comp_k(sum=bgt): 
+        cur_dict_delta=dict(zip(features, lnr_comb))
+        enu_split=enumerate(splits)
+        # print(cur_dict_delta)
+        results = Parallel(n_jobs=-1, backend="loky", verbose=10)(
+            delayed(eva_once)(
+                index=index, 
+                test_index=test_index,
+                in_dict_deltas=cur_dict_delta
+            )
+            for index, (_, test_index) in enu_split 
         )
-        for index, (_, test_index) in enu_split 
-    )
-    imp_pct=np.array(results).transpose()
-    # print(imp_pct)
-    df_cur_results=pd.DataFrame(dict(zip(features, lnr_comb.reshape(-1,1))))
-    df_cur_results["mean_rel_pred"], df_cur_results["std_rel_pred"]=imp_pct[0].mean(), imp_pct[0].std()
-    df_cur_results["mean_rel_act"], df_cur_results["std_rel_act"]=imp_pct[1].mean(), imp_pct[1].std()
-    df_bgt_results=pd.concat([df_bgt_results,df_cur_results])
+        imp_pct=np.array(results).transpose()
+        # print(imp_pct)
+        df_cur_results=pd.DataFrame(dict(zip(features, lnr_comb.reshape(-1,1))))
+        df_cur_results["mean_rel_pred"], df_cur_results["std_rel_pred"]=imp_pct[0].mean(), imp_pct[0].std()
+        df_cur_results["mean_rel_act"], df_cur_results["std_rel_act"]=imp_pct[1].mean(), imp_pct[1].std()
+        df_bgt_results=pd.concat([df_bgt_results,df_cur_results])    
+    
+    return df_bgt_results
     
 st.markdown("""
             ### Predicted impact: 
@@ -323,7 +338,9 @@ choice=st.selectbox(
     
 order_by=mapping[choice]
 
-df_show=df_bgt_results.sort_values(by=[order_by],ascending=False)
+df_show=make_bgt_results(bgt=imp_bgt,splits=splits)
+
+df_show=df_show.sort_values(by=[order_by],ascending=False)
 
 st.dataframe(data=df_show, use_container_width=True) 
 
@@ -331,12 +348,12 @@ df_best=df_show.iloc[[0]]
 
 x1_imp, x3_imp, x4_imp, x6_imp=df_best.loc[0,"X1"].astype(int), df_best.loc[0,"X3"].astype(int), df_best.loc[0,"X4"].astype(int), df_best.loc[0,"X6"].astype(int)
 
-sent_imp=df_best[order_by]
+sent_imp=df_best.loc[0,order_by].astype(float)
 
 st.markdown("""
             ### Business Suggestion 
             """)
 
 st.write(
-    f"Given that the allotted improvement budget is {imp_bgt}, the model suggests that the budget to be spent with following linear combination: \n {x1_imp} on X1, {x3_imp} on X3, {x4_imp} on X4, {x6_imp}* on X6. \n This allocation has expected customer sentiment improvement of {sent_imp} {choice}. "
+    f"Given that the allotted improvement budget is {imp_bgt}, the model suggests that the budget to be spent with following linear combination: \n {x1_imp} on X1, {x3_imp} on X3, {x4_imp} on X4, {x6_imp}* on X6. \n This allocation has expected customer sentiment improvement of {sent_imp:,.4f} {choice}. "
     )
