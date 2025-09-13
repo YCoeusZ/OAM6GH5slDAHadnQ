@@ -64,7 +64,7 @@ This brings us to the metric(s) we will use to judge our model, we will describe
 | acc_mean $\in [0,1]$ | The mean of accuracy score of the 100 trials | The average accuracy of this model |
 | f1_mean $\in [0,1]$ | The mean of f1 score of the 100 trials | The average f1 score of this model| 
 | above_73 $\in [0,1]$ | The number of trials among the 100 that has accuracy score above 73% | The confidence level that the model has accuracy at least 73% | 
-| norm_above_73 $\in [0,1]$ | Assuming that the distribution of accuracy score is a normal distribution with the same mean and std at the 100 trials, the confidence level that the model has accuracy at least 73% | The confidence level that the model has accuracy at least 73% under the assumption that the accuracy score is normally distributed | 
+| norm_above_73 $\in [0,1]$ | Assuming that the distribution of accuracy score is a normal distribution with the same mean and std as the 100 trials, the confidence level that the model has accuracy at least 73% | The confidence level that the model has accuracy at least 73% under the assumption that the accuracy score is normally distributed | 
 | acc_mean_above_73 $\in [0,1]$ | Applying CLT (Central Limit Theorem) on the 100 trials, the confidence level that the mean of the distribution of the accuracy score of the model is at least 73% | The confidence level that the average accuracy score, when applying the model repeatedly, is at least 73% | 
 
 **Remark**: Due to the symmetry (about its mean) of the normal distribution: The "acc_mean_above_73" will be the p-value of the Z-test (under the assumption that the sample std is the real std) for: 
@@ -121,7 +121,7 @@ Data Creator --> Data Selector --> StandardScaler --> KNN
 | X1, X6, F_w_mean             | 5                       |
 
 Where "F_w_mean", stands for "F score weighted mean", created with following method by the Data Creator layer: 
-Let $\vec{x}$ be the vector of raw features, for instance, $` \vec{x}:=(X1,X3,X4,X6)^{\top} `$ in current context; let $l$ be the length of $\vec{x}$, which is $4$ in current context. Let $\vec{F}$ be the vector of F score of the raw features obtained by applying F test on the raw features, for instance, $` \vec{F}:=(F_{1},F_{3},F_{4},F_{6}) `$ in current context. Then: 
+Let $\vec{x}$ be the vector of raw features, for instance, $` \vec{x}:=(X1,X3,X4,X6)^{\top} `$ in current context; let $l$ be the length of $\vec{x}$, which is $4$ in current context. Let $\vec{F}$ be the vector of F scores of the raw features obtained by applying F test on the raw features, for instance, $` \vec{F}:=(F_{1},F_{3},F_{4},F_{6}) `$ in current context. Then: 
 
 ```math
 \text{F score weighted mean}:=\frac{\vec{F}\; \vec{x}}{l}

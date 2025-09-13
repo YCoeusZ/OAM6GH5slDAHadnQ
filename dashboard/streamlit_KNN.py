@@ -364,5 +364,5 @@ st.markdown("""
             """)
 
 st.write(
-    f"Given that the allotted improvement budget is {imp_bgt}, the model suggests that the budget to be spent with following linear combination: \n {x1_imp} on X1, {x3_imp} on X3, {x4_imp} on X4, {x6_imp}* on X6. \n This allocation has expected customer sentiment improvement of {sent_imp:,.4f} {choice}. "
+    f"Given that the allotted improvement budget is {imp_bgt}, the model suggests that the budget to be spent with following linear combination: \n {x1_imp} on X1, {x3_imp} on X3, {x4_imp} on X4, {x6_imp} on X6. \n This allocation has expected customer sentiment improvement of {sent_imp:,.4f} {choice}. "
     )
