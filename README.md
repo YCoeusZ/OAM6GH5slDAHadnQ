@@ -65,7 +65,7 @@ This brings us to the metric(s) we will use to judge our model, we will describe
 | f1_mean $\in [0,1]$ | The mean of f1 score of the 100 trials | The average f1 score of this model| 
 | above_73 $\in [0,1]$ | The number of trials among the 100 that has accuracy score above 73% | The confidence level that the model has accuracy at least 73% | 
 | norm_above_73 $\in [0,1]$ | Assuming that the distribution of accuracy score is a normal distribution with the same mean and std as the 100 trials, the confidence level that the model has accuracy at least 73% | The confidence level that the model has accuracy at least 73% under the assumption that the accuracy score is normally distributed | 
-| acc_mean_above_73 $\in [0,1]$ | Applying CLT (Central Limit Theorem) on the 100 trials, the confidence level that the mean of the distribution of the accuracy score of the model is at least 73% | The confidence level that the average accuracy score, when applying the model repeatedly, is at least 73% | 
+| acc_mean_above_73 $\in [0,1]$ | Applying CLT (Central Limit Theorem) on the 100 trials, the confidence level that the mean of the distribution of the accuracy score of the model is at least 73% | The confidence level that the average accuracy score, when applying the model repeatedly (for precisely 100 times), is at least 73% | 
 
 **Remark**: Due to the symmetry (about its mean) of the normal distribution: The "acc_mean_above_73" will be the p-value of the Z-test (under the assumption that the sample std is the real std) for: 
 
